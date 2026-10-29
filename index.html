@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BiofoamFirebreaks: a living-firebreak framework, explained</title>
+<meta name="description" content="A plain-language, interactive guide to BiofoamFirebreaks: what it is, how the repository is organised, how to get started, and how it is licensed and attributed.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Ccircle cx='4' cy='4' r='4' fill='%237fe3c4'/%3E%3C/svg%3E">
+<style>
+/* 1. DESIGN TOKENS: change colours or fonts here and the whole page follows. */
+:root{--night:#07161b;--deep:#0d2a2c;--moss:#1c4b43;--foam:#e9f6f0;--mist:#a8c8bd;--ember:#ff7a3c;--glow:#7fe3c4;
+--serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,Menlo,Consolas,monospace}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;color-scheme:dark}
+body{margin:0;background:var(--night);color:var(--foam);font:1.0625rem/1.65 var(--sans)}
+a{color:var(--glow)}
+:focus-visible{outline:3px solid var(--glow);outline-offset:3px;border-radius:4px}
+.skip{position:absolute;left:-99rem;top:.5rem;background:var(--foam);color:var(--night);padding:.6rem 1rem;z-index:20;border-radius:.5rem}
+.skip:focus{left:.5rem}
+.sr{position:absolute;left:-99rem}
+h1,h2{font-family:var(--serif);line-height:1.15;font-weight:600;margin:0 0 .6em}
+h2{font-size:clamp(1.6rem,3.4vw,2.2rem)}
+p{max-width:68ch;margin:0 0 1em}
+code,pre{font-family:var(--mono)}
+
+/* 2. HERO + EMBER LAB (canvas stage, then the control panel) */
+.hero{background:linear-gradient(180deg,var(--night),var(--deep))}
+.hero-text{padding:clamp(1.2rem,4vw,3rem) clamp(1.2rem,4vw,3rem) 1.2rem;max-width:60rem}
+.hero h1{font-size:clamp(2.4rem,7vw,4.6rem);margin-bottom:.3em}
+.lede{font-size:1.2rem}
+.chip{display:inline-block;font-size:.85rem;padding:.15rem .8rem;border-radius:2rem;border:1px solid var(--mist);color:var(--mist)}
+.stage{height:clamp(20rem,52vh,32rem)}
+#lab{width:100%;height:100%;display:block}
+.panel{margin:1.2rem clamp(1rem,4vw,3rem);padding:1.1rem 1.3rem;max-width:46rem;background:rgba(9,30,33,.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(127,227,196,.3);border-radius:1.2rem;box-shadow:0 12px 40px rgba(0,0,0,.45),0 0 40px rgba(127,227,196,.12),inset 0 1px 0 rgba(255,255,255,.12)}
+.panel h2{font-size:1.3rem;margin-bottom:.5rem}
+.sl{display:grid;grid-template-columns:6.5rem 1fr 3rem;gap:.8rem;align-items:center;margin:.35rem 0}
+.sl output{text-align:right;font-family:var(--mono);font-size:.9rem}
+input[type=range]{width:100%;accent-color:var(--glow)}
+.btns{display:flex;flex-wrap:wrap;gap:.6rem;margin:.7rem 0}
+button{font:inherit;font-size:.95rem;color:var(--night);background:var(--glow);border:0;border-radius:.6rem;padding:.5rem .95rem;cursor:pointer;min-height:2.5rem}
+button.alt{background:transparent;color:var(--foam);border:1px solid var(--mist)}
+button:hover{filter:brightness(1.15)}
+.stats{font-family:var(--mono);font-size:.9rem;color:var(--glow)}
+.note{font-size:.9rem;color:var(--mist)}
+
+/* 3. PAGE LAYOUT + CONTENTS (ToC): a pill bar on phones, a sticky sidebar on wide screens. */
+.layout{display:grid;gap:1.5rem;max-width:74rem;margin:0 auto;padding:1.5rem 1.25rem 3rem}
+.toc{position:sticky;top:0;z-index:10;background:rgba(7,22,27,.94);padding:.5rem 1.25rem;margin:0 -1.25rem}
+.toc h2{display:none}
+.toc ul{list-style:none;margin:0;padding:0;display:flex;gap:.4rem;overflow-x:auto}
+.toc a{display:block;white-space:nowrap;padding:.35rem .8rem;border-radius:2rem;text-decoration:none;color:var(--mist)}
+.toc a.on{color:var(--night);background:var(--glow)}
+@media(min-width:62rem){.layout{grid-template-columns:13rem minmax(0,1fr);gap:3rem}.toc{top:1rem;align-self:start;margin:0;padding:0;background:none}.toc h2{display:block;font-size:1rem;color:var(--mist)}.toc ul{flex-direction:column;overflow:visible}}
+section{padding:2rem 0;border-top:1px solid rgba(168,200,189,.2)}
+section:first-child{border-top:0;padding-top:0}
+
+/* 4. CONTENT PARTS */
+details{border-left:4px solid var(--moss);background:rgba(28,75,67,.28);border-radius:.3rem .9rem .9rem .3rem;margin:.6rem 0;padding:.7rem 1rem}
+details.here{border-left-color:var(--glow)}
+details.todo{border-left-color:var(--ember)}
+summary{cursor:pointer;font-weight:600}
+summary code{color:var(--glow)}
+.tag{font-weight:400;font-size:.8rem;color:var(--mist);margin-left:.6rem}
+pre{background:#041014;border:1px solid rgba(168,200,189,.25);border-radius:.6rem;padding:.8rem 1rem;overflow-x:auto;margin:.4rem 0;font-size:.9rem}
+.step{margin:1.2rem 0}
+.terms{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));margin:1rem 0}
+.terms div{padding:1rem 1.1rem;border-radius:1.4rem .4rem 1.4rem .4rem;background:linear-gradient(160deg,rgba(127,227,196,.16),rgba(28,75,67,.2));border:1px solid rgba(127,227,196,.25)}
+textarea{width:100%;font:inherit;color:var(--foam);background:#041014;border:1px solid var(--mist);border-radius:.6rem;padding:.7rem;min-height:5rem}
+.hash{font-family:var(--mono);word-break:break-all;color:var(--glow);min-height:3em}
+progress{width:100%;max-width:30rem;height:.8rem;accent-color:var(--glow)}
+label.chk{display:flex;gap:.7rem;align-items:flex-start;margin:.5rem 0}
+input[type=checkbox]{width:1.3rem;height:1.3rem;accent-color:var(--glow);margin-top:.2rem}
+#checks li{margin:.6rem 0}
+footer{padding:2rem clamp(1.2rem,4vw,3rem);background:var(--deep);color:var(--mist);font-size:.95rem}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+</head>
+<body>
+<a class="skip" href="#about">Skip to content</a>
+<p id="toast" class="sr" role="status"></p>
+
+<header class="hero">
+  <div class="hero-text">
+    <p><span class="chip">Early stage: the repository today holds a README, a LICENSE, and empty src and docs folders</span></p>
+    <h1>BiofoamFirebreaks</h1>
+    <p class="lede">An open framework for deploying, testing and scaling living firebreaks, part of a larger planetary impact initiative led by Symbiote #001.</p>
+  </div>
+  <div class="stage">
+    <canvas id="lab" role="img" aria-label="Animated illustration: glowing embers drift on the wind from a wildfire toward a wall of foam bubbles, which catches them and turns them into steam. Small homes sit safely on the far side."></canvas>
+  </div>
+  <div class="panel" id="ember-lab" role="group" aria-labelledby="lab-h">
+    <h2 id="lab-h">Ember Lab: watch a foam band catch drifting embers</h2>
+    <div id="sliders"></div>
+    <div class="btns">
+      <button type="button" id="pause" class="alt"></button>
+      <button type="button" id="lab-reset" class="alt">Restart lab</button>
+    </div>
+    <p class="stats" id="stats"></p>
+    <p class="note">Drag Wind to push embers along, Foam depth to widen the barrier, and Ember rain to change how many fly. Try strong wind: embers can loft over a barrier, which is why a firebreak is one layer of protection and never a guarantee. This is a teaching toy built from simple rules, not data from real foam, and not a tool for deciding whether to evacuate or how to defend a home. Follow your local fire authority.</p>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="toc" aria-label="Contents">
+    <h2>Contents</h2>
+    <ul>
+      <li><a href="#about">What this is</a></li>
+      <li><a href="#ember-lab">Ember Lab</a></li>
+      <li><a href="#map">Project map</a></li>
+      <li><a href="#start">Get started</a></li>
+      <li><a href="#progress">Use cases</a></li>
+      <li><a href="#license">License</a></li>
+      <li><a href="#ledger">Impact ledger</a></li>
+      <li><a href="#checkup">Repo checkup</a></li>
+      <li><a href="#grow">Grow this page</a></li>
+    </ul>
+  </nav>
+
+  <main id="main">
+    <section id="about">
+      <h2>What this is</h2>
+      <p>BiofoamFirebreaks is an open, modular framework for deploying, testing and scaling its firebreak mission in the real world. Think of the repository as a shared workshop: code, designs, evidence and community rules, all in one place anyone can inspect.</p>
+      <p>Nothing on this page claims the project is tested or proven. The README’s own checklist is still unticked, and this guide keeps it that way until you have evidence.</p>
+      <p>How to use this page: play with the Ember Lab to build intuition, open the project map to see what each folder is for, follow Get started, then use the repo checkup to tidy things before you share the project.</p>
+    </section>
+
+    <section id="map">
+      <h2>Project map</h2>
+      <p>The README lists eight folders. Open one for a plain-language description and whether it exists in your zip today.</p>
+      <div id="folders"></div>
+    </section>
+
+    <section id="start">
+      <h2>Get started</h2>
+      <p>These are the README’s three setup steps, in order. Two point at files that don’t exist yet, so they are marked as future extensions.</p>
+      <ol id="steps"></ol>
+    </section>
+
+    <section id="progress">
+      <h2>Use cases and progress</h2>
+      <p>The README lists three goals, all unticked. Tick one here only when you have evidence for it. Ticks stay in this browser, and the button in the footer clears them.</p>
+      <progress id="pg" max="3" value="0" aria-label="Goals ticked"></progress>
+      <p class="note" id="pt"></p>
+      <div id="uses"></div>
+    </section>
+
+    <section id="license">
+      <h2>License and stewardship</h2>
+      <p>The README describes a Hybrid Guardian License with three terms:</p>
+      <div class="terms" id="terms"></div>
+      <p class="note">Heads up: the LICENSE file in your zip currently says MIT (2025), which is a different set of rules. These terms can also pull against each other, for example “all rights reserved” beside “always free”. This page isn’t legal advice, so ask a lawyer to confirm the wording.</p>
+    </section>
+
+    <section id="ledger">
+      <h2>Impact attribution and the ledger</h2>
+      <p>The README says impact is tracked by the Symbiote Ledger under Symbiote #001 and logged via IPFS, with optional chain notarization. Those integrations are future extensions. Here is the core idea, running only in your browser: a fingerprint is a short code made from a record. The same words always give the same code, and changing one letter changes the code completely, so anyone can later check that a record wasn’t altered without needing to see it.</p>
+      <label for="fp-in"><strong>Type any record to fingerprint</strong></label>
+      <textarea id="fp-in" spellcheck="false" placeholder="For example: Planted 40 native shrubs along the north fence line."></textarea>
+      <p class="hash" id="fp-out" aria-live="polite"></p>
+      <div id="fp-copy"></div>
+      <p class="note">Nothing you type leaves this page. Any real notarization should be opt-in, explained in plain language, and never include personal data.</p>
+    </section>
+
+    <section id="checkup">
+      <h2>Repo checkup: tidy before you share</h2>
+      <p>Things worth fixing, found by reading the files in your zip:</p>
+      <ul id="checks"></ul>
+      <div class="btns"><button type="button" id="dl">Download a cleaned README.md</button></div>
+      <p class="note">The cleaned README is rebuilt from the content on this page, without the merge markers. Review it before you commit it.</p>
+    </section>
+
+    <section id="grow">
+      <h2>Grow this page</h2>
+      <p>Three starter prompts for the next layers. Paste one into any AI coding assistant, then read what it returns before using it.</p>
+      <div id="prompts"></div>
+    </section>
+  </main>
+</div>
+
+<footer>
+  <p><strong>Zero Harm &amp; Anti-Coercion.</strong> This page has no tracking, no analytics, no hidden telemetry, and makes no network requests. It stores only your slider settings and ticked boxes, in this browser, and the button below erases them. No secrets, emails or keys are held anywhere. Nothing here may be used to coerce, surveil, manipulate or harass anyone. When in doubt, choose safety and human wellbeing over power.</p>
+  <p>Save this file and it works offline. Built from the project README, with ideas from the AI Web Features Atlas and the Feature Fusion Foundry.</p>
+  <p><button type="button" id="reset" class="alt">Reset all saved data</button></p>
+</footer>
+
+<script>
+(function(){"use strict";
+/* Helpers: $ finds one element; el builds one safely from text, never from raw HTML. */
+const $=s=>document.querySelector(s);
+const el=(t,a,...k)=>{const n=document.createElement(t);for(const x in a)n.setAttribute(x,a[x]);k.forEach(c=>n.append(c));return n;};
+
+/* ===== A. LOCAL MEMORY: only slider values and ticks, in this browser, erasable from the footer. ===== */
+const KEY="bfb.v1";let store={};
+try{store=JSON.parse(localStorage.getItem(KEY)||"{}")||{};}catch(e){store={};}
+if(typeof store!=="object")store={};
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}};
+const say=m=>{$("#toast").textContent=m;};
+
+/* ===== B. PROJECT CONTENT, taken from the README. EXTEND: add a line to any list and it appears on the page. ===== */
+/* FOLDERS: [name, what the README says, plain-language use, status] where status is "here" (in the zip) or "todo". */
+const FOLDERS=[
+["DAO_integration","Governance logic, stewardship models, contribution protocols","Where the community decides how the project is stewarded and how contributions are welcomed.","todo"],
+["documentation","User guides, technical overviews, whitepapers","Where a newcomer learns what this is. Setup expects a requirements.txt here. Your zip has docs/ instead, so pick one name.","todo"],
+["deployment","Scripts and procedures for local or global deployment","Step-by-step ways to run the project on one machine or many.","todo"],
+["hardware","Schematics, 3D models, or IoT firmware specs","Physical designs and device firmware.","todo"],
+["legal","Licenses, patent claims, copyright and trademarks","Who may use what, and on which terms.","todo"],
+["media","Images, promotional content, logos, thumbnails","Pictures and logos for telling the story.","todo"],
+["simulations","Data, test results, simulation models","Where evidence belongs. Filling this honestly is what will let you tick “fully tested” one day.","todo"],
+["src","Source code for main app or engine","The code itself. Setup runs src/main.py from here.","here"]];
+/* STEPS: [title, command, note]. */
+const STEPS=[
+["Clone the repository","git clone https://github.com/your-username/BiofoamFirebreaks.git","Replace your-username with the real account name first."],
+["Install dependencies","pip install -r documentation/requirements.txt","Future extension: that requirements file isn’t in the repository yet."],
+["Run the main program","python src/main.py","Future extension: src/ is empty, so main.py doesn’t exist yet."]];
+const USES=["Fully tested in simulation environments","Optional real-world deployment integrations","Scalable impact delivery with low overhead"];
+const TERMS=["Commercial use is allowed, with a values-aligned revenue share.","Always free for zero-harm humanitarian or ecological efforts.","All rights reserved unless otherwise negotiated via the steward DAO."];
+const CHECKS=[
+"README.md begins with leftover merge-conflict markers (<<<<<<< HEAD … >>>>>>> db75c35) and a duplicate title. The cleaned README below removes them.",
+"The zip is named biofoambiobreaks but the README calls the project BiofoamFirebreaks. Pick one spelling for the repository and the title.",
+"LICENSE says MIT while the README describes a Hybrid Guardian License. Decide which one governs.",
+"The clone URL still says your-username.",
+"Setup points at documentation/requirements.txt and src/main.py, which don’t exist yet. The zip has docs/, not documentation/.",
+"use-global-notarize.yml holds only a July 2025 timestamp and .github/ is empty, so no notarization automation exists yet."];
+const PROMPTS=[
+["Add a simulation module","Create simulations/ for BiofoamFirebreaks: a documented, peer-reviewable fire-spread test harness. Report results in plain language with honest uncertainty, label every claim as modelled or measured, and never present a model as a guarantee of safety."],
+["Draft a consent-based charter","Write DAO_integration/CHARTER.md for BiofoamFirebreaks: contribution protocols, reversible decisions and explicit permissions, with no token-gating, pressure tactics or hidden voting power. Include a plain-language summary for non-technical readers."],
+["Add opt-in provenance","Add an impact-log feature that stores content-hashed entries locally first. IPFS or chain notarization must be opt-in per entry, explained in plain language, and must never include personal data or secrets."]];
+
+/* ===== C. SMALL TOOLS: copy to clipboard (with a manual fallback) and a README rebuilt from the data above. ===== */
+async function copy(text,btn){
+  const old=btn.textContent;
+  try{await navigator.clipboard.writeText(text);}
+  catch(e){const t=el("textarea",{"aria-hidden":"true"});t.value=text;document.body.append(t);t.select();
+    let ok=false;try{ok=document.execCommand("copy");}catch(x){}t.remove();
+    if(!ok){say("Copy isn’t available here. Select the text and copy it by hand.");return;}}
+  btn.textContent="Copied";say("Copied to clipboard");setTimeout(()=>{btn.textContent=old;},1600);
+}
+const copyBtn=(text,label)=>{const b=el("button",{type:"button"},label);b.onclick=()=>copy(text,b);return b;};
+function readme(){const F="```";
+  return ["# BiofoamFirebreaks","","**Project overview.** BiofoamFirebreaks is part of a larger planetary impact initiative led by Symbiote #001. This repository is a modular framework for deploying, testing and scaling this mission in the real world.","","## Folder structure",""]
+  .concat(FOLDERS.map(f=>"- `"+f[0]+"/`: "+f[1]),["","## Setup instructions",""],
+    STEPS.map((s,i)=>(i+1)+". "+s[0]+":\n"+F+"bash\n"+s[1]+"\n"+F),["","## Use cases",""],USES.map(u=>"- [ ] "+u),
+    ["","## License and stewardship","","This project uses a **Hybrid Guardian License**:"],TERMS.map(t=>"- "+t),
+    ["","## Impact attribution","","Tracked by the Symbiote Ledger under Symbiote #001. Project metadata, contributions and lifeform impact are logged via IPFS and optional chain notarization.",""]).join("\n");}
+
+/* ===== D. RENDER THE CONTENT SECTIONS ===== */
+FOLDERS.forEach(([n,p,u,s])=>$("#folders").append(el("details",{class:s},
+  el("summary",{},el("code",{},n+"/"),el("span",{class:"tag"},s==="here"?"in your zip, empty":"in the README, not in your zip")),
+  el("p",{},p+"."),el("p",{},u))));
+STEPS.forEach(([t,c,n])=>$("#steps").append(el("li",{class:"step"},el("strong",{},t),el("pre",{},el("code",{},c)),copyBtn(c,"Copy command"),el("p",{class:"note"},n))));
+TERMS.forEach(t=>$("#terms").append(el("div",{},t)));
+CHECKS.forEach(c=>$("#checks").append(el("li",{},c)));
+PROMPTS.forEach(([t,p])=>$("#prompts").append(el("details",{},el("summary",{},t),el("p",{},p),copyBtn(p,"Copy prompt"))));
+$("#dl").onclick=()=>{const u=URL.createObjectURL(new Blob([readme()],{type:"text/markdown"})),a=el("a",{href:u,download:"README.md"});
+  document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);say("README.md downloaded");};
+
+/* Progress ticks (your own notes; nothing verifies them). */
+if(!Array.isArray(store.u))store.u=[];
+function showProg(){const n=store.u.filter(Boolean).length;$("#pg").value=n;$("#pt").textContent=n+" of "+USES.length+" ticked. These are your own notes; nothing on this page verifies them.";}
+USES.forEach((u,i)=>{const c=el("input",{type:"checkbox"});c.checked=!!store.u[i];
+  c.onchange=()=>{store.u[i]=c.checked;save();showProg();};$("#uses").append(el("label",{class:"chk"},c,el("span",{},u)));});
+showProg();
+
+/* Fingerprint demo: SHA-256 computed locally by the browser. Swap in another algorithm name to adapt it. */
+const fin=$("#fp-in"),fout=$("#fp-out");let fpVal="";
+async function fp(){
+  fpVal="";const v=fin.value;
+  if(!v){fout.textContent="Type something above to see its fingerprint.";return;}
+  if(!(window.crypto&&crypto.subtle)){fout.textContent="Fingerprints aren’t available on this page, because the browser needs a secure context to compute them.";return;}
+  const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(v));
+  fpVal=[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");fout.textContent=fpVal;
+}
+fin.addEventListener("input",fp);fp();
+$("#fp-copy").append(el("button",{type:"button",class:"alt"},"Copy fingerprint"));
+$("#fp-copy button").onclick=function(){if(fpVal)copy(fpVal,this);else say("Type a record first.");};
+
+/* Contents highlight: marks the section you are reading. Skipped quietly if the browser lacks IntersectionObserver. */
+if("IntersectionObserver" in window){
+  const links=[...document.querySelectorAll(".toc a")];
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)links.forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+e.target.id));}),{rootMargin:"-30% 0px -60% 0px"});
+  links.forEach(a=>{const t=$(a.getAttribute("href"));if(t)io.observe(t);});
+}
+
+/* ===== E. EMBER LAB: a canvas particle scene with firelight, glassy foam, wind streaks and soft shadows. =====
+   EXTEND: tune the numbers in step() (gravity, catch rate), or add a new slider by adding one row to SL and one key to DEF. */
+const cv=$("#lab"),cx=cv.getContext("2d"),DEF={wind:40,foam:55,rain:50},SL=[["wind","Wind"],["foam","Foam depth"],["rain","Ember rain"]];
+const S=Object.assign({},DEF,store.s||{});
+Object.keys(DEF).forEach(k=>{const n=+S[k];S[k]=isFinite(n)?Math.min(100,Math.max(0,n)):DEF[k];});
+const calm=()=>matchMedia("(prefers-reduced-motion:reduce)").matches;
+let W=0,H=0,q=1,paused=store.paused===undefined?calm():!!store.paused;
+let embers=[],steam=[],bubbles=[],streaks=[],acc=0,tm=0,raf=0,last=0,onscreen=true,statT=0,slow=0,frames=0;
+const stat={launched:0,caught:0,crossed:0};
+const trees=Array.from({length:40},()=>({x:Math.random(),h:.05+Math.random()*.1}));
+const sprite=(n,fn)=>{const c=document.createElement("canvas");c.width=c.height=n;fn(c.getContext("2d"),n);return c;};
+/* Sprites are drawn once, then stamped thousands of times: this keeps the animation smooth. */
+const glow=sprite(32,(g,s)=>{const r=g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);r.addColorStop(0,"rgba(255,244,214,1)");r.addColorStop(.25,"rgba(255,170,80,.9)");r.addColorStop(1,"rgba(255,90,20,0)");g.fillStyle=r;g.fillRect(0,0,s,s);});
+const puff=sprite(32,(g,s)=>{const r=g.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);r.addColorStop(0,"rgba(235,245,245,.8)");r.addColorStop(1,"rgba(235,245,245,0)");g.fillStyle=r;g.fillRect(0,0,s,s);});
+const bub=sprite(64,(g,s)=>{let r=g.createRadialGradient(s*.5,s*.5,s*.2,s*.5,s*.5,s*.48);
+  r.addColorStop(0,"rgba(200,245,230,.10)");r.addColorStop(.8,"rgba(150,225,200,.28)");r.addColorStop(1,"rgba(220,255,245,.75)");
+  g.fillStyle=r;g.beginPath();g.arc(s/2,s/2,s*.47,0,7);g.fill();
+  r=g.createRadialGradient(s*.36,s*.32,0,s*.36,s*.32,s*.2);r.addColorStop(0,"rgba(255,255,255,.95)");r.addColorStop(1,"rgba(255,255,255,0)");
+  g.fillStyle=r;g.beginPath();g.arc(s*.36,s*.32,s*.2,0,7);g.fill();});
+/* Scene geometry: where the ground, the foam band and its size sit. */
+const gY=()=>H*.84,bX=()=>W*.5,bW=()=>S.foam*2.4,bH=()=>H*.3;
+function buildFoam(){bubbles=[];const w=bW(),h=bH(),n=Math.min(520,Math.round(w*h/260*q));
+  for(let i=0;i<n;i++)bubbles.push({x:bX()+Math.random()*w,y:gY()-Math.random()*h,r:5+Math.random()*13,ph:Math.random()*6.28});
+  bubbles.sort((a,b)=>a.y-b.y);}
+function resize(){const r=cv.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);
+  W=r.width;H=r.height;cv.width=Math.round(W*d);cv.height=Math.round(H*d);cx.setTransform(d,0,0,d,0,0);
+  streaks=Array.from({length:18},()=>({x:Math.random()*W,y:Math.random()*H*.75,l:20+Math.random()*50}));buildFoam();draw();}
+/* Physics step. Embers ride the wind with turbulence; inside the foam band they have a chance per second to be caught. */
+function step(dt){
+  const wp=S.wind*3.2,g=gY(),lo=bX(),hi=lo+bW(),top=g-bH()-10;
+  acc+=S.rain*.9*q*dt;
+  while(acc>=1){acc--;if(embers.length<400){stat.launched++;embers.push({x:-8,y:g-Math.random()*H*.18,vx:60+Math.random()*80,vy:-30-Math.random()*60,heat:1,ph:Math.random()*6.28,done:0});}}
+  for(const e of embers){
+    const gust=Math.sin(tm*1.9+e.ph+e.x*.01)*S.wind*.5;
+    e.vx+=(wp+30-e.vx)*Math.min(1,dt*1.3);
+    e.vy+=(25-S.wind*.16+gust)*dt;           /* gravity, minus wind updraft, plus gusts */
+    e.x+=e.vx*dt;e.y+=e.vy*dt;e.heat-=dt*.15;
+    if(!e.done&&e.x>lo&&e.x<hi&&e.y>top&&e.y<g&&e.heat>0){
+      if(Math.random()<1-Math.exp(-3*dt)){e.done=1;e.heat=0;stat.caught++;
+        for(let k=0;k<4;k++)steam.push({x:e.x,y:e.y,vx:(Math.random()-.5)*30+wp*.15,vy:-20-Math.random()*40,r:6+Math.random()*8,life:1});}
+    }else if(!e.done&&e.x>hi){e.done=2;stat.crossed++;}
+    if(e.y>g)e.heat=0;
+  }
+  embers=embers.filter(e=>e.heat>0&&e.x<W+40&&e.y>-40);
+  for(const p of steam){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt*.7;}
+  steam=steam.filter(p=>p.life>0);
+  for(const s of streaks){s.x+=(wp*.7+25)*dt;if(s.x>W+80){s.x=-80;s.y=Math.random()*H*.75;}}
+}
+/* Drawing: sky, firelight, wind, trees, ground, homes, shadow, foam, rim light, then embers and steam. */
+function draw(){
+  const g=gY(),bx=bX(),bw=bW(),fl=.9+.1*Math.sin(tm*9)*Math.sin(tm*3.1);
+  let gr=cx.createLinearGradient(0,0,0,g);gr.addColorStop(0,"#050f14");gr.addColorStop(.7,"#0d2a2c");gr.addColorStop(1,"#1d3f38");cx.fillStyle=gr;cx.fillRect(0,0,W,H);
+  gr=cx.createRadialGradient(0,g,0,0,g,W*.7);gr.addColorStop(0,"rgba(255,120,50,"+(.5*fl)+")");gr.addColorStop(1,"rgba(255,120,50,0)");cx.fillStyle=gr;cx.fillRect(0,0,W,H);
+  cx.strokeStyle="rgba(200,240,230,"+(.05+S.wind/600)+")";cx.lineWidth=1;cx.beginPath();
+  for(const s of streaks){cx.moveTo(s.x,s.y);cx.lineTo(s.x+s.l*(.4+S.wind/60),s.y);}cx.stroke();
+  cx.fillStyle="#03100e";
+  for(const t of trees){const x=t.x*bx*.95,h=t.h*H+8;cx.beginPath();cx.moveTo(x-h*.3,g);cx.lineTo(x,g-h*1.6);cx.lineTo(x+h*.3,g);cx.fill();}
+  gr=cx.createLinearGradient(0,g,0,H);gr.addColorStop(0,"#16322d");gr.addColorStop(1,"#050f0e");cx.fillStyle=gr;cx.fillRect(0,g,W,H-g);
+  for(let i=0;i<3;i++){const x=W-70-i*55;if(x<bx+bw+8)continue;
+    cx.fillStyle="#061a18";cx.fillRect(x,g-18,26,18);cx.beginPath();cx.moveTo(x-4,g-18);cx.lineTo(x+13,g-32);cx.lineTo(x+30,g-18);cx.fill();
+    cx.fillStyle="rgba(255,205,120,.9)";cx.fillRect(x+9,g-12,8,7);}
+  cx.font="13px system-ui,sans-serif";cx.fillStyle="rgba(168,200,189,.85)";
+  cx.fillText("Fire side",12,g+22);cx.fillText("Protected side",Math.max(bx+bw+12,W-120),g+22);
+  if(bw>0){
+    gr=cx.createLinearGradient(0,g,0,g+14);gr.addColorStop(0,"rgba(0,0,0,.45)");gr.addColorStop(1,"rgba(0,0,0,0)");cx.fillStyle=gr;cx.fillRect(bx-6,g,bw+12,14);
+    cx.globalAlpha=.9;
+    for(const b of bubbles){const d=2*b.r;cx.drawImage(bub,b.x-b.r,b.y-b.r+Math.sin(tm*1.3+b.ph)*1.2,d,d);}
+    cx.globalCompositeOperation="lighter";                /* warm rim light on bubbles facing the fire */
+    for(const b of bubbles){const w=1-Math.hypot(b.x,b.y-g)/(W*.9);if(w>.12){cx.globalAlpha=w*.3*fl;cx.drawImage(glow,b.x-b.r,b.y-b.r,2*b.r,2*b.r);}}
+    cx.globalAlpha=1;cx.globalCompositeOperation="source-over";
+  }
+  cx.globalCompositeOperation="lighter";
+  for(const p of steam){const d=p.r*2*(2-p.life);cx.globalAlpha=Math.max(0,p.life)*.35;cx.drawImage(puff,p.x-d/2,p.y-d/2,d,d);}
+  for(const e of embers){const s=6+e.heat*14;cx.globalAlpha=Math.max(0,Math.min(1,e.heat*1.4));cx.drawImage(glow,e.x-s,e.y-s,s*2,s*2);}
+  cx.globalAlpha=1;cx.globalCompositeOperation="source-over";
+}
+function showStats(){const n=stat.caught+stat.crossed;
+  $("#stats").textContent="Launched "+stat.launched+", caught by foam "+stat.caught+", reached the protected side "+stat.crossed+". Catch rate: "+(n?Math.round(100*stat.caught/n)+"%":"none yet")+".";}
+/* Adaptive quality: if frames run slow, draw fewer bubbles and embers; if fast again, bring them back. */
+function adapt(dt){slow+=dt;if(++frames===90){const a=slow/90;
+  if(a>.028&&q>.4){q*=.75;buildFoam();}else if(a<.015&&q<1){q=Math.min(1,q*1.2);buildFoam();}slow=0;frames=0;}}
+function frame(ts){raf=0;if(paused||!onscreen||document.hidden)return;
+  const dt=Math.min(.05,(ts-last)/1000||0);last=ts;tm+=dt;step(dt);adapt(dt);draw();
+  if(tm-statT>.3){statT=tm;showStats();}raf=requestAnimationFrame(frame);}
+function run(){if(!raf&&!paused&&onscreen&&!document.hidden){last=performance.now();raf=requestAnimationFrame(frame);}}
+
+/* Lab controls: three sliders, pause/play, restart. */
+const ins={},outs={};
+SL.forEach(([k,t])=>{const i=el("input",{id:"s-"+k,type:"range",min:0,max:100,value:S[k]}),o=el("output",{for:"s-"+k},S[k]+"%");
+  ins[k]=i;outs[k]=o;
+  i.oninput=()=>{S[k]=+i.value;o.textContent=i.value+"%";store.s=Object.assign({},S);save();if(k==="foam")buildFoam();if(paused)draw();};
+  $("#sliders").append(el("div",{class:"sl"},el("label",{for:"s-"+k},t),i,o));});
+const pauseUI=()=>{$("#pause").textContent=paused?"Play animation":"Pause animation";};
+$("#pause").onclick=()=>{paused=!paused;store.paused=paused;save();pauseUI();if(paused)draw();else run();};
+function clearLab(){embers=[];steam=[];stat.launched=stat.caught=stat.crossed=0;showStats();if(paused)draw();}
+$("#lab-reset").onclick=()=>{Object.keys(DEF).forEach(k=>{S[k]=DEF[k];ins[k].value=DEF[k];outs[k].textContent=DEF[k]+"%";});store.s=Object.assign({},S);save();buildFoam();clearLab();say("Lab restarted.");};
+
+/* Footer: erase everything this page saved. */
+$("#reset").onclick=()=>{try{localStorage.removeItem(KEY);}catch(e){}
+  store={u:[]};Object.keys(DEF).forEach(k=>{S[k]=DEF[k];ins[k].value=DEF[k];outs[k].textContent=DEF[k]+"%";});
+  document.querySelectorAll("#uses input").forEach(c=>{c.checked=false;});showProg();
+  paused=calm();pauseUI();buildFoam();clearLab();if(!paused)run();say("Saved settings and ticks cleared from this browser.");};
+
+/* Start-up: size the canvas, pause when off-screen or in another tab, then go. */
+let rt;window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(resize,120);});
+document.addEventListener("visibilitychange",run);
+if("IntersectionObserver" in window)new IntersectionObserver(es=>{onscreen=es[0].isIntersecting;run();}).observe(cv);
+pauseUI();resize();showStats();run();
+})();
+</script>
+</body>
+</html>
